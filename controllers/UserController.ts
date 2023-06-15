@@ -31,6 +31,7 @@ export const login = async (req: Request, res: Response) => {
     if (err) {
       console.log(err.message);
       res.status(401).send({ error: err.message });
+      res.setHeader("Access-Control-Allow-Origin", "*");
       return;
     }
 
@@ -41,6 +42,7 @@ export const login = async (req: Request, res: Response) => {
       if (verifiedRow[0] == 0) {
         console.log("Email no verificado.");
         res.send({ error: "Email no verificado" });
+        res.setHeader("Access-Control-Allow-Origin", "*");
         return;
       }
 
@@ -49,6 +51,7 @@ export const login = async (req: Request, res: Response) => {
       if (!isPasswordValid) {
         console.log("Contraseña incorrecta" + passwordRow[0], password);
         res.send({ error: "Contraseña incorrecta" });
+        res.setHeader("Access-Control-Allow-Origin", "*");
       } else {
         const SESSION_TOKEN = nanoid();
 
@@ -58,6 +61,7 @@ export const login = async (req: Request, res: Response) => {
           if (err) {
             console.log(err.message);
             res.status(500).send({ error: err.message });
+            res.setHeader("Access-Control-Allow-Origin", "*");
             return;
           }
           res
@@ -71,6 +75,7 @@ export const login = async (req: Request, res: Response) => {
       }
     } else {
       res.send("Usuario no encontrado.");
+      res.setHeader("Access-Control-Allow-Origin", "*");
       client.end;
     }
   });

@@ -1,13 +1,22 @@
 import express from "express";
 const router = express.Router();
-import { login, register, getAllMessages } from "../controllers/UserController";
-
-//I couldn't get the .env variables to work...
+import {
+  login,
+  register,
+  getAllMessages,
+  emailVerification,
+} from "../controllers/UserController";
 
 router.get("/login", login);
 
-router.post("/register", register);
+/* 
+  UNUSED USER AND PASSWORD AUTHENTICATION ROUTERS.
+*/
+
+/* router.post("/register", register);
 
 router.get("/getAllMessages", getAllMessages);
+
+router.get("/emailVerification", emailVerification); */
 
 export { router };

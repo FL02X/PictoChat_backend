@@ -22,8 +22,93 @@ const pool = new Pool({
 });
 
 export const wss = new ws.Server({ port: 8081 });
+let usersRoom1: String[] = [];
 
 wss.on("connection", (ws, req) => {
+  let userIsVerified: Boolean;
+  let username: any;
+  //.slice removes the "/" on the url request.
+  /* username = req.url.slice(1); */
+
+  const checkUsername = () => {
+    if (usersRoom1.includes(username)) {
+      ws.close(1003, "El nombre de usuario ya esta usado.");
+    }
+
+    if (username.length < 10) {
+      usersRoom1.push(username);
+    } else {
+      ws.close(1003, "El nombre de usuario es muy largo.");
+    }
+  };
+
+  //https://stackoverflow.com/questions/3155528/can-i-broadcast-to-all-websocket-clients
+  ws.on("message", (data) => {
+    let messageJSON: JSON;
+
+    /* 
+      Checks if the data being send is in a JSON format.
+    */
+
+    try {
+      messageJSON = JSON.parse(data.toString());
+    } catch (err) {
+      ws.close(1003, "Invalid Input JSON");
+      return;
+    }
+
+    if (userIsVerified) {
+      if (!("message" in messageJSON)) {
+        ws.close(1003, "Invalid Input JSON. Doesn't contain message");
+        return;
+      } else if (!("image" in messageJSON)) {
+        ws.close(1003, "Invalid Input JSON. Doesn't contain image");
+        return;
+      }
+
+      /* 
+        EXAMPLE:
+        {
+          message: "Hello",
+          image: null
+        }
+     */
+
+      const message = {
+        user: username,
+        message: messageJSON.message,
+        image: messageJSON.image,
+      };
+      console.log(message);
+      console.log(usersRoom1);
+
+      /* 
+        Sends the message to all connected clients.
+      */
+      wss.clients.forEach((client) => client.send(JSON.stringify(message)));
+    } else {
+      if (!("username" in messageJSON)) {
+        ws.close(1003, "No username send.");
+        return;
+      } else {
+        username = messageJSON.username;
+        userIsVerified = true;
+        console.log(username);
+        checkUsername();
+      }
+    }
+  });
+
+  ws.on("close", (code) => {
+    usersRoom1 = usersRoom1.filter((e) => e !== username);
+  });
+});
+
+/* 
+  UNUSED USER AND PASSWORD AUTHENTICATION WEBSOCKET.
+*/
+
+/* wss.on("connection", (ws, req) => {
   let userName: String;
   console.log("New connection" + req.url);
 
@@ -81,7 +166,7 @@ wss.on("connection", (ws, req) => {
       );
     });
   });
-});
+}); */
 
 app.get("/", (req, res) => {
   console.log("1");
