@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 dotenv.config();
 import morgan from "morgan";
 import ws from "ws";
-import cookieParser from "cookie-parser";
 import { router } from "./routers/router";
 import { Pool } from "pg";
 const app = express();
@@ -14,15 +13,16 @@ app.use("/", router);
 morgan("dev");
 app.use(cors());
 
-const pool = new Pool({
+/* const pool = new Pool({
   user: process.env.SQL_USER,
   host: "localhost",
   database: "postgres",
   password: process.env.SQL_PASS,
-});
+}); */
 
 export const wss = new ws.Server({ port: 8081 });
 let usersRoom1: String[] = [];
+usersRoom1.push("admin");
 
 wss.on("connection", (ws, req) => {
   let userIsVerified: Boolean;
@@ -58,14 +58,6 @@ wss.on("connection", (ws, req) => {
     }
 
     if (userIsVerified) {
-      if (!("message" in messageJSON)) {
-        ws.close(1003, "Invalid Input JSON. Doesn't contain message");
-        return;
-      } else if (!("image" in messageJSON)) {
-        ws.close(1003, "Invalid Input JSON. Doesn't contain image");
-        return;
-      }
-
       /* 
         EXAMPLE:
         {
@@ -73,6 +65,14 @@ wss.on("connection", (ws, req) => {
           image: null
         }
      */
+
+      if (!("message" in messageJSON)) {
+        ws.close(1003, "Invalid Input JSON. Doesn't contain message");
+        return;
+      } else if (!("image" in messageJSON)) {
+        ws.close(1003, "Invalid Input JSON. Doesn't contain image");
+        return;
+      }
 
       const message = {
         user: username,
@@ -85,6 +85,7 @@ wss.on("connection", (ws, req) => {
       /* 
         Sends the message to all connected clients.
       */
+
       wss.clients.forEach((client) => client.send(JSON.stringify(message)));
     } else {
       if (!("username" in messageJSON)) {
@@ -93,14 +94,41 @@ wss.on("connection", (ws, req) => {
       } else {
         username = messageJSON.username;
         userIsVerified = true;
-        console.log(username);
         checkUsername();
+
+        /* 
+          Broadcast welcome message.
+        */
+
+        const message = {
+          user: "admin",
+          // @ts-ignore
+          message: `Welcome to the chat room`,
+          username: username,
+          reason: "join",
+          color: "green",
+        };
+        wss.clients.forEach((client) => client.send(JSON.stringify(message)));
+        console.log("New connection: " + username, [usersRoom1]);
       }
     }
   });
 
   ws.on("close", (code) => {
-    usersRoom1 = usersRoom1.filter((e) => e !== username);
+    if (!(username === undefined)) {
+      usersRoom1 = usersRoom1.filter((e) => e !== username);
+      const message = {
+        user: "admin",
+        message: ` has leaved the room!`,
+        username: username,
+        // @ts-ignore
+        reason: "leave",
+        color: "red",
+      };
+
+      wss.clients.forEach((client) => client.send(JSON.stringify(message)));
+      console.log("Lose connection: " + username, [usersRoom1]);
+    }
   });
 });
 
